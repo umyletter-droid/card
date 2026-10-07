@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Business card</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Sora:wght@600;700&display=swap"
+      rel="stylesheet" />
+    <style>
+      :root {
+        --bg: #f4f4f7;
+        --surface: #ffffff;
+        --surface2: #ededf1;
+        --line: #e4e4e8;
+        --ink: #0e0e10;
+        --muted: #5e5e69;
+        --primary: #6a3df5;
+        --primary-text: #5a2ee8;
+        --card: #6a3df5;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0e0e10;
+          --surface: #18181c;
+          --surface2: #232329;
+          --line: #2c2c33;
+          --ink: #f4f4f6;
+          --muted: #a3a3ae;
+          --primary: #7248ff;
+          --primary-text: #a993ff;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: Manrope, system-ui, -apple-system, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      main {
+        max-width: 440px;
+        margin: 0 auto;
+        padding: 24px 16px 40px;
+      }
+      .card {
+        background: var(--card);
+        color: #fff;
+        border-radius: 18px;
+        padding: 24px;
+        aspect-ratio: 1.75;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-shadow: 0 12px 32px rgba(14, 14, 16, 0.18);
+      }
+      .card .company {
+        font-weight: 700;
+        font-size: 14px;
+        opacity: 0.9;
+        overflow-wrap: anywhere;
+      }
+      .card .name {
+        font-family: Sora, sans-serif;
+        font-weight: 700;
+        font-size: 26px;
+        letter-spacing: -0.02em;
+        line-height: 1.15;
+        overflow-wrap: anywhere;
+      }
+      .card .title {
+        font-size: 14px;
+        margin-top: 4px;
+        opacity: 0.9;
+        overflow-wrap: anywhere;
+      }
+      .save {
+        display: block;
+        width: 100%;
+        margin-top: 16px;
+        height: 52px;
+        line-height: 52px;
+        text-align: center;
+        border-radius: 10px;
+        background: var(--primary);
+        color: #fff;
+        font-weight: 700;
+        font-size: 16px;
+        text-decoration: none;
+      }
+      .rows {
+        margin-top: 16px;
+        background: var(--surface);
+        border-radius: 16px;
+        overflow: hidden;
+      }
+      .row {
+        display: block;
+        padding: 14px 16px;
+        border-top: 1px solid var(--line);
+        color: var(--ink);
+        text-decoration: none;
+      }
+      .row:first-child {
+        border-top: 0;
+      }
+      .row .label {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .row .value {
+        margin-top: 2px;
+        font-size: 16px;
+        font-weight: 600;
+        overflow-wrap: anywhere;
+        white-space: pre-line;
+      }
+      a.row .value {
+        color: var(--primary-text);
+      }
+      .message {
+        margin-top: 80px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1.5;
+      }
+      .message b {
+        display: block;
+        color: var(--ink);
+        font-size: 20px;
+        margin-bottom: 6px;
+      }
+      footer {
+        margin-top: 28px;
+        text-align: center;
+        font-size: 12px;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <main id="app"><p class="message">Loading…</p></main>
+
+    <script>
+      // The public "my card" page of the Card Scanner app.
+      // These two values are PUBLIC on purpose (the same ones the app uses). The page can only
+      // call public_card(), which answers only for cards whose owner switched the link on.
+      var CLOUD = 'https://vdtsogurkzhmepqmolwt.supabase.co';
+      var PUBLIC_KEY = 'sb_publishable_pYWOIpM74VJ8yiibEE6PDw_Fp6dxUEy';
+
+      var app = document.getElementById('app');
+
+      function el(tag, className, text) {
+        var node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text != null) node.textContent = text; // textContent: card text can never run as code
+        return node;
+      }
+
+      function showMessage(title, text) {
+        app.replaceChildren();
+        var box = el('p', 'message');
+        box.append(el('b', null, title), document.createTextNode(text));
+        app.append(box);
+      }
+
+      function row(label, value, href) {
+        var node = el(href ? 'a' : 'div', 'row');
+        if (href) node.href = href;
+        node.append(el('div', 'label', label), el('div', 'value', value));
+        return node;
+      }
+
+      function list(value) {
+        return Array.isArray(value) ? value : [];
+      }
+
+      function vcardText(value) {
+        return String(value || '')
+          .replace(/\\/g, '\\\\')
+          .replace(/\n/g, '\\n')
+          .replace(/,/g, '\\,')
+          .replace(/;/g, '\\;');
+      }
+
+      function buildVCard(card) {
+        var lines = ['BEGIN:VCARD', 'VERSION:3.0'];
+        lines.push('N:' + vcardText(card.last_name) + ';' + vcardText(card.first_name) + ';;;');
+        var name = [card.first_name, card.last_name].filter(Boolean).join(' ') || card.company || '';
+        lines.push('FN:' + vcardText(name));
+        if (card.company) lines.push('ORG:' + vcardText(card.company));
+        if (card.job_title) lines.push('TITLE:' + vcardText(card.job_title));
+        list(card.phones).forEach(function (p) {
+          if (!p || !p.number) return;
+          var kind = p.kind === 'mobile' ? 'CELL' : p.kind === 'work' ? 'WORK' : 'VOICE';
+          lines.push('TEL;TYPE=' + kind + ':' + String(p.number).replace(/\s+/g, ''));
+        });
+        list(card.emails).forEach(function (e) {
+          if (typeof e === 'string' && e) lines.push('EMAIL;TYPE=INTERNET:' + e);
+        });
+        if (card.website) lines.push('URL:' + card.website);
+        if (card.address || card.city || card.country) {
+          lines.push(
+            'ADR;TYPE=WORK:;;' +
+              vcardText(card.address) +
+              ';' +
+              vcardText(card.city) +
+              ';;;' +
+              vcardText(card.country),
+          );
+        }
+        if (card.services_text) lines.push('NOTE:' + vcardText(card.services_text));
+        lines.push('END:VCARD');
+        return lines.join('\r\n');
+      }
+
+      function safeWebsite(url) {
+        return /^https?:\/\//i.test(url || '') ? url : null;
+      }
+
+      function showCard(card) {
+        var name = [card.first_name, card.last_name].filter(Boolean).join(' ');
+        document.title = (name || card.company || 'Business card') + ' — card';
+        if (/^#[0-9a-f]{6}$/i.test(card.color || '')) {
+          document.documentElement.style.setProperty('--card', card.color);
+        }
+        app.replaceChildren();
+
+        var face = el('div', 'card');
+        face.append(el('div', 'company', card.company || ''));
+        var who = el('div');
+        who.append(el('div', 'name', name || card.company || ''));
+        if (card.job_title) who.append(el('div', 'title', card.job_title));
+        face.append(who);
+        app.append(face);
+
+        var save = el('a', 'save', 'Save to contacts');
+        save.href = URL.createObjectURL(new Blob([buildVCard(card)], { type: 'text/vcard' }));
+        save.download = (name || card.company || 'contact').replace(/[^\p{L}\p{N}]+/gu, '-') + '.vcf';
+        app.append(save);
+
+        var rows = el('div', 'rows');
+        list(card.phones).forEach(function (p) {
+          if (p && p.number) rows.append(row('Phone', p.number, 'tel:' + String(p.number).replace(/\s+/g, '')));
+        });
+        list(card.emails).forEach(function (e) {
+          if (typeof e === 'string' && e) rows.append(row('Email', e, 'mailto:' + e));
+        });
+        var site = safeWebsite(card.website);
+        if (site) rows.append(row('Website', site.replace(/^https?:\/\//i, '').replace(/\/$/, ''), site));
+        var place = [card.address, card.city, card.country].filter(Boolean).join(', ');
+        if (place) rows.append(row('Address', place));
+        if (card.services_text) rows.append(row('What I do', card.services_text));
+        if (rows.children.length) app.append(rows);
+
+        app.append(el('footer', null, 'Shared with Card Scanner'));
+      }
+
+      var slug = new URLSearchParams(location.search).get('c');
+      if (!slug) {
+        showMessage('No card here', 'This link is incomplete. Ask the sender for the full link.');
+      } else {
+        fetch(CLOUD + '/rest/v1/rpc/public_card', {
+          method: 'POST',
+          headers: { apikey: PUBLIC_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug: slug }),
+        })
+          .then(function (response) {
+            if (!response.ok) throw new Error('status ' + response.status);
+            return response.json();
+          })
+          .then(function (card) {
+            if (card && typeof card === 'object') showCard(card);
+            else showMessage('This card is not available', 'The owner switched the link off, or the link is wrong.');
+          })
+          .catch(function () {
+            showMessage('Could not load the card', 'Check your internet connection and open the link again.');
+          });
+      }
+    </script>
+  </body>
+</html>
